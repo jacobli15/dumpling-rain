@@ -52,4 +52,6 @@ export interface Dumpling {
   value: number;
   isCaught?: boolean; // true when caught, animating into mouth
   catchTimeElapsed?: number; // seconds since caught, for animation
+  catchStartX?: number; // original x position when caught
+  catchStartY?: number; // original y position when caught
 }

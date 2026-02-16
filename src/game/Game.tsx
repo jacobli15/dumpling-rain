@@ -109,6 +109,14 @@ export function Game() {
     handleStart();
   }, [handleStart]);
 
+  /**
+   * Handle Leaderboard button click
+   */
+  const handleLeaderboard = useCallback(() => {
+    // TODO: Hook up to Supabase later
+    console.log('Leaderboard clicked');
+  }, []);
+
   // Keyboard input
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -317,12 +325,123 @@ export function Game() {
         <div
           style={{
             position: 'absolute',
-            bottom: '30%',
+            top: '50%',
             left: '50%',
-            transform: 'translateX(-50%)',
+            transform: 'translate(-50%, -50%)',
             textAlign: 'center',
+            width: '100%',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            gap: '30px',
+            zIndex: 10,
+            pointerEvents: 'none',
           }}
         >
+          {/* Title with bubble text effect */}
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              gap: '0',
+              pointerEvents: 'none',
+            }}
+          >
+            <div
+              style={{
+                fontSize: '64px',
+                fontWeight: 'bold',
+                color: '#fff',
+                textShadow: `
+                  4px 4px 0px #000,
+                  3px 3px 0px #000,
+                  -2px -2px 0px #000,
+                  2px -2px 0px #000,
+                  -2px 2px 0px #000,
+                  2px 2px 0px #000,
+                  0px 0px 30px rgba(0, 0, 0, 0.8),
+                  0px 0px 20px rgba(255, 255, 255, 0.3)
+                `,
+                letterSpacing: '4px',
+                fontFamily: 'Arial, sans-serif',
+                lineHeight: '1.1',
+                textTransform: 'uppercase',
+                WebkitTextStroke: '2px #000',
+              }}
+            >
+              DUMPLING
+            </div>
+            <div
+              style={{
+                fontSize: '64px',
+                fontWeight: 'bold',
+                color: '#fff',
+                textShadow: `
+                  4px 4px 0px #000,
+                  3px 3px 0px #000,
+                  -2px -2px 0px #000,
+                  2px -2px 0px #000,
+                  -2px 2px 0px #000,
+                  2px 2px 0px #000,
+                  0px 0px 30px rgba(0, 0, 0, 0.8),
+                  0px 0px 20px rgba(255, 255, 255, 0.3)
+                `,
+                letterSpacing: '4px',
+                fontFamily: 'Arial, sans-serif',
+                lineHeight: '1.1',
+                textTransform: 'uppercase',
+                WebkitTextStroke: '2px #000',
+              }}
+            >
+              RAIN
+            </div>
+          </div>
+
+          {/* Leaderboard button */}
+          <button
+            onClick={handleLeaderboard}
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '12px 24px',
+              fontSize: '18px',
+              backgroundColor: 'rgba(255, 255, 255, 0.9)',
+              color: '#333',
+              border: '2px solid #000',
+              borderRadius: '8px',
+              cursor: 'pointer',
+              fontWeight: '600',
+              fontFamily: 'inherit',
+              boxShadow: '0 4px 8px rgba(0, 0, 0, 0.3)',
+              transition: 'all 0.2s ease',
+              pointerEvents: 'auto',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#fff';
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(255, 255, 255, 0.9)';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            <svg
+              width="20"
+              height="20"
+              viewBox="0 0 20 20"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              style={{ flexShrink: 0 }}
+            >
+              <circle cx="10" cy="10" r="9" stroke="#333" strokeWidth="2" fill="none" />
+              <rect x="6" y="6" width="8" height="8" fill="#333" />
+            </svg>
+            <span style={{ fontStyle: 'italic' }}>leaderboard</span>
+          </button>
+
+          {/* Start button */}
           <button
             onClick={handleStart}
             style={{
@@ -334,9 +453,21 @@ export function Game() {
               borderRadius: '8px',
               cursor: 'pointer',
               fontWeight: 'bold',
+              textDecoration: 'underline',
+              boxShadow: '0 4px 12px rgba(0, 0, 0, 0.3)',
+              transition: 'all 0.2s ease',
+              pointerEvents: 'auto',
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = '#45a049';
+              e.currentTarget.style.transform = 'scale(1.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = '#4CAF50';
+              e.currentTarget.style.transform = 'scale(1)';
             }}
           >
-            Start
+            start
           </button>
         </div>
       )}

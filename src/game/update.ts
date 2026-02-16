@@ -110,9 +110,9 @@ export function update(
       const catchProgress = (dumpling.catchTimeElapsed || 0) + deltaTime;
       const progress = Math.min(catchProgress / CATCH_ANIMATION_DURATION, 1);
       
-      // Animate toward mouth position
-      const startX = dumpling.x;
-      const startY = dumpling.y;
+      // Use stored catch start position, or current position as fallback
+      const startX = dumpling.catchStartX ?? dumpling.x;
+      const startY = dumpling.catchStartY ?? dumpling.y;
       const targetX = mouthX;
       const targetY = mouthY;
       
@@ -185,10 +185,13 @@ export function update(
         eatingTimer = EATING_ANIMATION_DURATION;
 
         // Mark dumpling as caught - it will animate into mouth
+        // Store the original catch position for animation
         remainingDumplings.push({
           ...updatedDumpling,
           isCaught: true,
           catchTimeElapsed: 0,
+          catchStartX: updatedDumpling.x,
+          catchStartY: updatedDumpling.y,
         });
         continue;
       }
