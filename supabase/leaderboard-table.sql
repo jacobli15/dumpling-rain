@@ -11,6 +11,10 @@ create table if not exists public.leaderboard (
 -- Enable Row Level Security
 alter table public.leaderboard enable row level security;
 
+-- Drop existing policies if they exist (safe to run multiple times)
+drop policy if exists "Allow public read" on public.leaderboard;
+drop policy if exists "Allow public insert" on public.leaderboard;
+
 -- Anyone can read (anon key)
 create policy "Allow public read"
   on public.leaderboard

@@ -617,7 +617,14 @@ export function Game() {
           >
             <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '28px', textAlign: 'center' }}>Leaderboard</h2>
             {!leaderboardAvailable ? (
-              <p style={{ textAlign: 'center', color: '#aaa' }}>Leaderboard unavailable. Add Supabase URL and key to .env</p>
+              <div style={{ textAlign: 'center', color: '#aaa' }}>
+                <p>Leaderboard unavailable.</p>
+                <p style={{ fontSize: '14px', marginTop: '8px', color: '#888' }}>
+                  Check browser console (F12) for details.
+                  <br />
+                  Ensure VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY are set in Netlify.
+                </p>
+              </div>
             ) : leaderboardLoading ? (
               <p style={{ textAlign: 'center', color: '#aaa' }}>Loading...</p>
             ) : leaderboardError ? (

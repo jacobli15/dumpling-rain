@@ -1,6 +1,8 @@
 [build]
   command = "npm run build"
   publish = "dist"
+  # Supabase anon key is meant to be in the client bundle; don't fail the build for it
+  environment = { SECRETS_SCAN_OMIT_KEYS = "VITE_SUPABASE_ANON_KEY" }
 
 [[redirects]]
   from = "/*"
