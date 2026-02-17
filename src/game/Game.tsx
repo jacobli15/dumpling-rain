@@ -3,6 +3,8 @@ import type { GameState } from './types';
 import { initialGameState } from './state';
 import { update } from './update';
 import { draw } from './draw';
+import { fetchLeaderboard, submitScore, type LeaderboardEntry } from '../lib/leaderboard';
+import { supabase } from '../lib/supabase';
 import charSiuBaoImage from '../assets/dumplings/char-siu-bau.png';
 import siuMaiImage from '../assets/dumplings/siu-mai.png';
 import haGaoImage from '../assets/dumplings/ha-gao.png';
@@ -17,6 +19,14 @@ export function Game() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const gameStateRef = useRef<GameState>(initialGameState());
   const [gameState, setGameState] = useState<GameState>(initialGameState());
+  const [showLeaderboard, setShowLeaderboard] = useState(false);
+  const [leaderboardEntries, setLeaderboardEntries] = useState<LeaderboardEntry[]>([]);
+  const [leaderboardLoading, setLeaderboardLoading] = useState(false);
+  const [leaderboardError, setLeaderboardError] = useState<string | null>(null);
+  const [saveName, setSaveName] = useState('');
+  const [saveError, setSaveError] = useState<string | null>(null);
+  const [saveSuccess, setSaveSuccess] = useState(false);
+  const [scoreSubmitted, setScoreSubmitted] = useState(false);
   const lastTimeRef = useRef<number>(performance.now());
   const animationFrameRef = useRef<number | undefined>(undefined);
   const pressedKeysRef = useRef<Set<string>>(new Set());
@@ -99,6 +109,10 @@ export function Game() {
     newState.eatingTimer = 0;
     gameStateRef.current = newState;
     setGameState(newState);
+    setScoreSubmitted(false);
+    setSaveSuccess(false);
+    setSaveName('');
+    setSaveError(null);
     lastTimeRef.current = performance.now();
   }, []);
 
@@ -113,9 +127,36 @@ export function Game() {
    * Handle Leaderboard button click
    */
   const handleLeaderboard = useCallback(() => {
-    // TODO: Hook up to Supabase later
-    console.log('Leaderboard clicked');
+    setShowLeaderboard(true);
   }, []);
+
+  // Fetch leaderboard when modal opens
+  useEffect(() => {
+    if (!showLeaderboard) return;
+    setLeaderboardError(null);
+    setLeaderboardLoading(true);
+    fetchLeaderboard()
+      .then(setLeaderboardEntries)
+      .catch((err) => setLeaderboardError(err instanceof Error ? err.message : 'Failed to load'))
+      .finally(() => setLeaderboardLoading(false));
+  }, [showLeaderboard]);
+
+  const handleSaveScore = useCallback(() => {
+    const name = saveName.trim();
+    if (!name) {
+      setSaveError('Please enter a name');
+      return;
+    }
+    setSaveError(null);
+    submitScore(name, gameState.score)
+      .then(() => {
+        setSaveSuccess(true);
+        setScoreSubmitted(true);
+      })
+      .catch((err) => setSaveError(err instanceof Error ? err.message : 'Failed to save'));
+  }, [saveName, gameState.score]);
+
+  const leaderboardAvailable = !!supabase;
 
   // Keyboard input
   useEffect(() => {
@@ -485,10 +526,50 @@ export function Game() {
             padding: '40px',
             borderRadius: '12px',
             color: 'white',
+            maxWidth: '90vw',
           }}
         >
           <h2 style={{ marginTop: 0, fontSize: '36px' }}>Game Over</h2>
           <p style={{ fontSize: '24px', margin: '20px 0' }}>Score: {gameState.score}</p>
+          {leaderboardAvailable && !scoreSubmitted && (
+            <div style={{ marginBottom: '20px' }}>
+              <input
+                type="text"
+                placeholder="Your name"
+                maxLength={25}
+                value={saveName}
+                onChange={(e) => setSaveName(e.target.value)}
+                style={{
+                  padding: '10px 14px',
+                  fontSize: '18px',
+                  borderRadius: '8px',
+                  border: '2px solid #ccc',
+                  marginRight: '8px',
+                  width: '180px',
+                }}
+              />
+              <button
+                onClick={handleSaveScore}
+                style={{
+                  padding: '10px 20px',
+                  fontSize: '18px',
+                  backgroundColor: '#2196F3',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                }}
+              >
+                Save to leaderboard
+              </button>
+              {saveError && <p style={{ color: '#FF6B6B', marginTop: '8px', fontSize: '14px' }}>{saveError}</p>}
+              {saveSuccess && <p style={{ color: '#4CAF50', marginTop: '8px', fontSize: '14px' }}>Saved!</p>}
+            </div>
+          )}
+          {leaderboardAvailable && scoreSubmitted && (
+            <p style={{ color: '#4CAF50', marginBottom: '16px', fontSize: '16px' }}>Score saved to leaderboard!</p>
+          )}
           <button
             onClick={handleRestart}
             style={{
@@ -504,6 +585,85 @@ export function Game() {
           >
             Restart
           </button>
+        </div>
+      )}
+
+      {/* Leaderboard modal */}
+      {showLeaderboard && (
+        <div
+          style={{
+            position: 'absolute',
+            inset: 0,
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            zIndex: 20,
+            padding: '24px',
+          }}
+        >
+          <div
+            style={{
+              backgroundColor: 'rgba(40, 40, 40, 0.98)',
+              borderRadius: '12px',
+              padding: '32px',
+              maxWidth: '400px',
+              width: '100%',
+              maxHeight: '80vh',
+              overflow: 'auto',
+              color: 'white',
+            }}
+          >
+            <h2 style={{ marginTop: 0, marginBottom: '20px', fontSize: '28px', textAlign: 'center' }}>Leaderboard</h2>
+            {!leaderboardAvailable ? (
+              <p style={{ textAlign: 'center', color: '#aaa' }}>Leaderboard unavailable. Add Supabase URL and key to .env</p>
+            ) : leaderboardLoading ? (
+              <p style={{ textAlign: 'center', color: '#aaa' }}>Loading...</p>
+            ) : leaderboardError ? (
+              <p style={{ textAlign: 'center', color: '#FF6B6B' }}>{leaderboardError}</p>
+            ) : leaderboardEntries.length === 0 ? (
+              <p style={{ textAlign: 'center', color: '#aaa' }}>No scores yet. Be the first!</p>
+            ) : (
+              <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
+                {leaderboardEntries.map((entry, index) => (
+                  <li
+                    key={`${entry.player_name}-${entry.score}-${index}`}
+                    style={{
+                      display: 'flex',
+                      justifyContent: 'space-between',
+                      padding: '10px 0',
+                      borderBottom: '1px solid rgba(255,255,255,0.15)',
+                      fontSize: '18px',
+                    }}
+                  >
+                    <span style={{ fontWeight: 'bold', minWidth: '28px' }}>{index + 1}.</span>
+                    <span style={{ flex: 1, textAlign: 'left', marginLeft: '12px' }}>{entry.player_name}</span>
+                    <span style={{ fontWeight: 'bold' }}>{entry.score}</span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <button
+              onClick={() => setShowLeaderboard(false)}
+              style={{
+                display: 'block',
+                marginTop: '24px',
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                padding: '12px 28px',
+                fontSize: '18px',
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+              }}
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
 
