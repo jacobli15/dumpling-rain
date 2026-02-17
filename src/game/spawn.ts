@@ -82,8 +82,8 @@ function isCloudVisible(cloud: Cloud, canvasWidth: number): boolean {
 }
 
 // Minimum vertical gap when dumplings are in the same "column" so they never stack
-const SAME_COLUMN_H_THRESHOLD = 70; // same column = horizontal distance less than this
-const MIN_VERTICAL_GAP_SAME_COLUMN = 140; // when in same column, Y gap must be at least this
+const SAME_COLUMN_H_THRESHOLD = 120; // same column = horizontal distance less than this (player catch width ~80)
+const MIN_VERTICAL_GAP_SAME_COLUMN = 220; // when in same column, Y gap must be at least this
 
 /**
  * Check if spawning at (spawnX, spawnY) would put a dumpling on top of another (same column, too close in Y)
@@ -104,7 +104,7 @@ function wouldStackVertically(
 /**
  * Check if Y level is occupied by existing dumplings
  */
-function isYLevelOccupied(y: number, existingDumplings: Dumpling[], minSpacing: number = 80): boolean {
+function isYLevelOccupied(y: number, existingDumplings: Dumpling[], minSpacing: number = 120): boolean {
   return existingDumplings.some(d => Math.abs(d.y - y) < minSpacing);
 }
 
@@ -125,14 +125,14 @@ function isSpawnPositionReachable(
   return !existingDumplings.some(d => {
     const horizontalDistance = Math.abs(d.x - spawnX);
     const verticalDistance = Math.abs(d.y - spawnY);
-    return horizontalDistance < 100 && verticalDistance < 150;
+    return horizontalDistance < 120 && verticalDistance < 200;
   });
 }
 
 /**
  * Check if X position is too close to existing dumplings (prevent same position)
  */
-function isXPositionOccupied(spawnX: number, existingDumplings: Dumpling[], minSpacing: number = 100): boolean {
+function isXPositionOccupied(spawnX: number, existingDumplings: Dumpling[], minSpacing: number = 130): boolean {
   return existingDumplings.some(d => Math.abs(d.x - spawnX) < minSpacing);
 }
 

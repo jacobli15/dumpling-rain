@@ -1,5 +1,5 @@
 import type { GameState, GameStateType } from './types';
-import { spawnDumpling, shouldSpawn, getSpeedMultiplier, BASE_VY } from './spawn';
+import { spawnDumpling, shouldSpawn, getSpeedMultiplier } from './spawn';
 import { circleRectIntersect, getMouthHitbox } from './collisions';
 
 const PLAYER_SPEED = 750 * 1.19264; // pixels per second
@@ -8,7 +8,6 @@ const FATNESS_INCREMENT = 0.02;
 const EFFECT_DURATION = 1.0; // seconds
 const EATING_ANIMATION_DURATION = 0.3; // seconds - how long eating animation lasts
 const CATCH_ANIMATION_DURATION = 0.2; // seconds - how long it takes dumpling to go into mouth
-const DIFFICULTY_RAMP_ENABLED = true;
 const MAX_MISSES = 3;
 
 /**
@@ -76,13 +75,7 @@ export function update(
     }
   }
 
-  // Apply difficulty ramp to existing dumplings
-  if (DIFFICULTY_RAMP_ENABLED) {
-    dumplings = dumplings.map((dumpling) => ({
-      ...dumpling,
-      vy: Math.max(dumpling.vy, BASE_VY * speedMultiplier * 0.8),
-    }));
-  }
+  // Do NOT change existing dumplings' vy — otherwise lower dumplings speed up and stack on higher ones
 
   // Update dumpling positions and check collisions
   const groundY = canvasHeight - 100;
