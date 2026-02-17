@@ -70,8 +70,10 @@ export function update(
       dumplings,
       newPlayerX
     );
-    dumplings.push(newDumpling);
-    lastSpawnTime = newTimeElapsed;
+    if (newDumpling) {
+      dumplings.push(newDumpling);
+      lastSpawnTime = newTimeElapsed;
+    }
   }
 
   // Apply difficulty ramp to existing dumplings

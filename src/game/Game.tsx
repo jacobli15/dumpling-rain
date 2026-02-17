@@ -570,6 +570,32 @@ export function Game() {
           {leaderboardAvailable && scoreSubmitted && (
             <p style={{ color: '#4CAF50', marginBottom: '16px', fontSize: '16px' }}>Score saved to leaderboard!</p>
           )}
+          {leaderboardAvailable && (
+            <button
+              onClick={() => setShowLeaderboard(true)}
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: '8px',
+                marginBottom: '16px',
+                padding: '12px 24px',
+                fontSize: '18px',
+                backgroundColor: 'rgba(255, 255, 255, 0.9)',
+                color: '#333',
+                border: '2px solid #000',
+                borderRadius: '8px',
+                cursor: 'pointer',
+                fontWeight: '600',
+                fontFamily: 'inherit',
+              }}
+            >
+              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <circle cx="10" cy="10" r="9" stroke="#333" strokeWidth="2" fill="none" />
+                <rect x="6" y="6" width="8" height="8" fill="#333" />
+              </svg>
+              Leaderboard
+            </button>
+          )}
           <button
             onClick={handleRestart}
             style={{
@@ -581,6 +607,8 @@ export function Game() {
               borderRadius: '8px',
               cursor: 'pointer',
               fontWeight: 'bold',
+              display: 'block',
+              margin: '0 auto',
             }}
           >
             Restart

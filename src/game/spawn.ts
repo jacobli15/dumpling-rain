@@ -81,10 +81,30 @@ function isCloudVisible(cloud: Cloud, canvasWidth: number): boolean {
   return wrappedX >= -cloudWidth && wrappedX <= canvasWidth + cloudWidth;
 }
 
+// Minimum vertical gap when dumplings are in the same "column" so they never stack
+const SAME_COLUMN_H_THRESHOLD = 70; // same column = horizontal distance less than this
+const MIN_VERTICAL_GAP_SAME_COLUMN = 140; // when in same column, Y gap must be at least this
+
+/**
+ * Check if spawning at (spawnX, spawnY) would put a dumpling on top of another (same column, too close in Y)
+ */
+function wouldStackVertically(
+  spawnX: number,
+  spawnY: number,
+  existingDumplings: Dumpling[]
+): boolean {
+  return existingDumplings.some((d) => {
+    const horizontalDist = Math.abs(d.x - spawnX);
+    const verticalDist = Math.abs(d.y - spawnY);
+    if (horizontalDist >= SAME_COLUMN_H_THRESHOLD) return false; // different column, no stack
+    return verticalDist < MIN_VERTICAL_GAP_SAME_COLUMN; // same column and too close in Y
+  });
+}
+
 /**
  * Check if Y level is occupied by existing dumplings
  */
-function isYLevelOccupied(y: number, existingDumplings: Dumpling[], minSpacing: number = 60): boolean {
+function isYLevelOccupied(y: number, existingDumplings: Dumpling[], minSpacing: number = 80): boolean {
   return existingDumplings.some(d => Math.abs(d.y - y) < minSpacing);
 }
 
@@ -98,17 +118,13 @@ function isSpawnPositionReachable(
   existingDumplings: Dumpling[],
   maxDistance: number = 400
 ): boolean {
-  // Check distance to player
   const distanceToPlayer = Math.abs(spawnX - playerX);
   if (distanceToPlayer > maxDistance) {
     return false;
   }
-  
-  // Check if too close to other dumplings horizontally (prevent same X position)
   return !existingDumplings.some(d => {
     const horizontalDistance = Math.abs(d.x - spawnX);
     const verticalDistance = Math.abs(d.y - spawnY);
-    // Increase minimum horizontal spacing to prevent same position
     return horizontalDistance < 100 && verticalDistance < 150;
   });
 }
@@ -121,7 +137,8 @@ function isXPositionOccupied(spawnX: number, existingDumplings: Dumpling[], minS
 }
 
 /**
- * Spawn a new dumpling from a random cloud
+ * Spawn a new dumpling from a random cloud.
+ * Returns null if no position is valid (would stack or overlap).
  */
 export function spawnDumpling(
   clouds: Cloud[],
@@ -130,7 +147,7 @@ export function spawnDumpling(
   speedMultiplier: number,
   existingDumplings: Dumpling[],
   playerX: number
-): Dumpling {
+): Dumpling | null {
   const dumplingType = selectDumplingType();
   const typeData = DUMPLING_TYPES.find(d => d.type === dumplingType)!;
   
@@ -138,11 +155,16 @@ export function spawnDumpling(
   const visibleClouds = clouds.filter(c => isCloudVisible(c, canvasWidth));
   
   if (visibleClouds.length === 0) {
-    // Fallback: spawn from first cloud if none visible
     const cloud = clouds[0];
     const spawnX = Math.max(40 + DUMPLING_RADIUS, Math.min(canvasWidth - 40 - DUMPLING_RADIUS, cloud.x + Math.random() * 100 - 50));
     const spawnY = cloud.y + SPAWN_Y_OFFSET;
-    
+    if (
+      wouldStackVertically(spawnX, spawnY, existingDumplings) ||
+      isYLevelOccupied(spawnY, existingDumplings) ||
+      isXPositionOccupied(spawnX, existingDumplings)
+    ) {
+      return null;
+    }
     return {
       id: nextId,
       type: dumplingType,
@@ -154,9 +176,9 @@ export function spawnDumpling(
     };
   }
   
-  // Try to find a good spawn position
+  // Try to find a good spawn position (no stacking)
   let attempts = 0;
-  const maxAttempts = 20; // Increased attempts to find a better position
+  const maxAttempts = 50;
   
   while (attempts < maxAttempts) {
     const cloud = visibleClouds[Math.floor(Math.random() * visibleClouds.length)];
@@ -173,11 +195,13 @@ export function spawnDumpling(
     
     const spawnY = cloud.y + SPAWN_Y_OFFSET;
     
-    // Check if position is valid
-    // Ensure X position is not too close to existing dumplings
-    if (!isYLevelOccupied(spawnY, existingDumplings) && 
-        !isXPositionOccupied(spawnX, existingDumplings) &&
-        isSpawnPositionReachable(spawnX, spawnY, playerX, existingDumplings)) {
+    // Check if position is valid: no stacking, no Y/X overlap, reachable by player
+    if (
+      !wouldStackVertically(spawnX, spawnY, existingDumplings) &&
+      !isYLevelOccupied(spawnY, existingDumplings) &&
+      !isXPositionOccupied(spawnX, existingDumplings) &&
+      isSpawnPositionReachable(spawnX, spawnY, playerX, existingDumplings)
+    ) {
       return {
         id: nextId,
         type: dumplingType,
@@ -188,23 +212,10 @@ export function spawnDumpling(
         value: typeData.value,
       };
     }
-    
+
     attempts++;
   }
-  
-  // Fallback: spawn from random visible cloud
-  const cloud = visibleClouds[Math.floor(Math.random() * visibleClouds.length)];
-  const wrappedX = wrapCloudX(cloud.x, 500, canvasWidth);
-  const spawnX = Math.max(40 + DUMPLING_RADIUS, Math.min(canvasWidth - 40 - DUMPLING_RADIUS, wrappedX + Math.random() * 100 - 50));
-  const spawnY = cloud.y + SPAWN_Y_OFFSET;
-  
-  return {
-    id: nextId,
-    type: dumplingType,
-    x: spawnX,
-    y: spawnY,
-    radius: DUMPLING_RADIUS,
-    vy: BASE_VY * speedMultiplier,
-    value: typeData.value,
-  };
+
+  // No valid position found — skip this spawn so we never stack dumplings
+  return null;
 }
