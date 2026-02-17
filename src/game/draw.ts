@@ -381,29 +381,66 @@ function drawEffects(ctx: CanvasRenderingContext2D, effects: Effect[]): void {
 }
 
 /**
+ * Helper: draw text with readable background and outline
+ */
+function drawLabel(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  x: number,
+  y: number,
+  options: { align?: CanvasTextAlign; fillStyle?: string; fontSize?: number } = {}
+): void {
+  const align = options.align ?? 'left';
+  const fillStyle = options.fillStyle ?? '#FFFFFF';
+  const fontSize = options.fontSize ?? 22;
+  ctx.font = `bold ${fontSize}px Arial`;
+  ctx.textAlign = align;
+  ctx.textBaseline = 'top';
+
+  const metrics = ctx.measureText(text);
+  const padding = 10;
+  const boxWidth = metrics.width + padding * 2;
+  const boxHeight = fontSize + padding;
+  let boxX = x;
+  if (align === 'right') boxX = x - boxWidth;
+  else if (align === 'center') boxX = x - boxWidth / 2;
+  const boxY = y - 2;
+
+  // Background pill
+  ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+  const r = boxHeight / 2;
+  ctx.beginPath();
+  ctx.roundRect(boxX, boxY, boxWidth, boxHeight, r);
+  ctx.fill();
+
+  // Text outline for contrast
+  ctx.strokeStyle = '#000';
+  ctx.lineWidth = 3;
+  ctx.fillStyle = fillStyle;
+  ctx.strokeText(text, align === 'left' ? x + padding : align === 'right' ? x - padding : x, y + padding / 2);
+  ctx.fillText(text, align === 'left' ? x + padding : align === 'right' ? x - padding : x, y + padding / 2);
+}
+
+/**
  * Draw score UI
  */
 function drawScore(ctx: CanvasRenderingContext2D, score: number, dumplingsEaten: number, misses: number): void {
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 24px Arial';
-  ctx.textAlign = 'left';
-  ctx.textBaseline = 'top';
-  ctx.fillText(`Score: ${score}`, 20, 20);
-  
-  ctx.font = '18px Arial';
-  ctx.fillText(`Streak: ${dumplingsEaten}`, 20, 55);
-  
-  ctx.fillStyle = misses >= MAX_MISSES ? '#FF0000' : '#FFFFFF';
-  ctx.fillText(`Misses: ${misses}/${MAX_MISSES}`, 20, 80);
+  const x = 20;
+  let y = 18;
+
+  drawLabel(ctx, `Score: ${score}`, x, y, { fontSize: 24 });
+  y += 38;
+  drawLabel(ctx, `Streak: ${dumplingsEaten}`, x, y, { fontSize: 20 });
+  y += 38;
+  drawLabel(ctx, `Misses: ${misses}/${MAX_MISSES}`, x, y, {
+    fontSize: 20,
+    fillStyle: misses >= MAX_MISSES ? '#FF6B6B' : '#FFFFFF',
+  });
 }
 
 /**
  * Draw time UI
  */
 function drawTime(ctx: CanvasRenderingContext2D, timeElapsed: number, width: number): void {
-  ctx.fillStyle = '#FFFFFF';
-  ctx.font = 'bold 20px Arial';
-  ctx.textAlign = 'right';
-  ctx.textBaseline = 'top';
-  ctx.fillText(`Time: ${Math.floor(timeElapsed)}s`, width - 20, 20);
+  drawLabel(ctx, `Time: ${Math.floor(timeElapsed)}s`, width - 20, 18, { align: 'right', fontSize: 22 });
 }
