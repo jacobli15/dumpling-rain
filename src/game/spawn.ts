@@ -6,11 +6,12 @@ const MIN_SPAWN_INTERVAL = 0.6; // seconds
 const DUMPLING_RADIUS = 20;
 const SPAWN_Y_OFFSET = 120; // Spawn slightly below clouds
 
-// Dumpling type probabilities and values
+// Dumpling type probabilities and values (negative value = subtracts score)
 const DUMPLING_TYPES: { type: DumplingType; value: number; weight: number }[] = [
   { type: 'charSiuBao', value: 10, weight: 1 }, // Rare, high value
   { type: 'siuMai', value: 5, weight: 3 }, // Medium
   { type: 'haGao', value: 1, weight: 6 }, // Common, low value
+  { type: 'fishChips', value: -5, weight: 2 }, // Bland food: minus 5
 ];
 
 /**
@@ -81,59 +82,34 @@ function isCloudVisible(cloud: Cloud, canvasWidth: number): boolean {
   return wrappedX >= -cloudWidth && wrappedX <= canvasWidth + cloudWidth;
 }
 
-// Minimum vertical gap when dumplings are in the same "column" so they never stack
-const SAME_COLUMN_H_THRESHOLD = 120; // same column = horizontal distance less than this (player catch width ~80)
-const MIN_VERTICAL_GAP_SAME_COLUMN = 220; // when in same column, Y gap must be at least this
+// No two dumplings may occupy "the same place": minimum distance from any existing dumpling
+const MIN_DX_FROM_ANY = 100; // no spawn within this many px horizontally of any existing
+const MIN_DY_FROM_ANY = 220; // no spawn within this many px vertically of any existing
 
 /**
- * Check if spawning at (spawnX, spawnY) would put a dumpling on top of another (same column, too close in Y)
+ * True if (spawnX, spawnY) is too close to any existing dumpling in both X and Y (same place / overlapping path)
  */
-function wouldStackVertically(
+function isSamePlaceAsAny(
   spawnX: number,
   spawnY: number,
   existingDumplings: Dumpling[]
 ): boolean {
   return existingDumplings.some((d) => {
-    const horizontalDist = Math.abs(d.x - spawnX);
-    const verticalDist = Math.abs(d.y - spawnY);
-    if (horizontalDist >= SAME_COLUMN_H_THRESHOLD) return false; // different column, no stack
-    return verticalDist < MIN_VERTICAL_GAP_SAME_COLUMN; // same column and too close in Y
+    const dx = Math.abs(d.x - spawnX);
+    const dy = Math.abs(d.y - spawnY);
+    return dx < MIN_DX_FROM_ANY && dy < MIN_DY_FROM_ANY;
   });
 }
 
 /**
- * Check if Y level is occupied by existing dumplings
- */
-function isYLevelOccupied(y: number, existingDumplings: Dumpling[], minSpacing: number = 120): boolean {
-  return existingDumplings.some(d => Math.abs(d.y - y) < minSpacing);
-}
-
-/**
- * Check if spawn position is reachable by player and not overlapping with existing dumplings
+ * Check if spawn position is reachable by player (not too far left/right)
  */
 function isSpawnPositionReachable(
   spawnX: number,
-  spawnY: number,
   playerX: number,
-  existingDumplings: Dumpling[],
   maxDistance: number = 400
 ): boolean {
-  const distanceToPlayer = Math.abs(spawnX - playerX);
-  if (distanceToPlayer > maxDistance) {
-    return false;
-  }
-  return !existingDumplings.some(d => {
-    const horizontalDistance = Math.abs(d.x - spawnX);
-    const verticalDistance = Math.abs(d.y - spawnY);
-    return horizontalDistance < 120 && verticalDistance < 200;
-  });
-}
-
-/**
- * Check if X position is too close to existing dumplings (prevent same position)
- */
-function isXPositionOccupied(spawnX: number, existingDumplings: Dumpling[], minSpacing: number = 130): boolean {
-  return existingDumplings.some(d => Math.abs(d.x - spawnX) < minSpacing);
+  return Math.abs(spawnX - playerX) <= maxDistance;
 }
 
 /**
@@ -159,9 +135,8 @@ export function spawnDumpling(
     const spawnX = Math.max(40 + DUMPLING_RADIUS, Math.min(canvasWidth - 40 - DUMPLING_RADIUS, cloud.x + Math.random() * 100 - 50));
     const spawnY = cloud.y + SPAWN_Y_OFFSET;
     if (
-      wouldStackVertically(spawnX, spawnY, existingDumplings) ||
-      isYLevelOccupied(spawnY, existingDumplings) ||
-      isXPositionOccupied(spawnX, existingDumplings)
+      isSamePlaceAsAny(spawnX, spawnY, existingDumplings) ||
+      !isSpawnPositionReachable(spawnX, playerX)
     ) {
       return null;
     }
@@ -195,12 +170,10 @@ export function spawnDumpling(
     
     const spawnY = cloud.y + SPAWN_Y_OFFSET;
     
-    // Check if position is valid: no stacking, no Y/X overlap, reachable by player
+    // Check: not in same place as any existing dumpling, and reachable by player
     if (
-      !wouldStackVertically(spawnX, spawnY, existingDumplings) &&
-      !isYLevelOccupied(spawnY, existingDumplings) &&
-      !isXPositionOccupied(spawnX, existingDumplings) &&
-      isSpawnPositionReachable(spawnX, spawnY, playerX, existingDumplings)
+      !isSamePlaceAsAny(spawnX, spawnY, existingDumplings) &&
+      isSpawnPositionReachable(spawnX, playerX)
     ) {
       return {
         id: nextId,

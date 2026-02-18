@@ -138,8 +138,15 @@ export function update(
       y: dumpling.y + dumpling.vy * deltaTime,
     };
 
-    // Check collision with mouth hitbox FIRST (only between the red indicator lines)
-    if (gameState === 'playing') {
+    // Check if dumpling has hit the ground BEFORE checking collision (can't catch after hitting ground)
+    // Use a small buffer to ensure we don't catch dumplings that are at or very close to ground
+    const GROUND_BUFFER = 5; // pixels - small buffer to prevent catching at ground level
+    const dumplingBottom = updatedDumpling.y + updatedDumpling.radius;
+    const hasHitGround = dumplingBottom >= (groundY - GROUND_BUFFER);
+
+    // Check collision with mouth hitbox ONLY if it hasn't hit the ground yet
+    // hasHitGround already includes a buffer to prevent catching at ground level
+    if (gameState === 'playing' && !hasHitGround) {
       const collisionAtNewPos = circleRectIntersect(
         updatedDumpling.x,
         updatedDumpling.y,
@@ -155,16 +162,20 @@ export function update(
       const xInHitboxRange = updatedDumpling.x >= mouthHitbox.x - updatedDumpling.radius && 
                              updatedDumpling.x <= mouthHitbox.x + mouthHitbox.width + updatedDumpling.radius;
       
+      // Can only catch if it passed through hitbox (and hasn't hit ground, checked above)
       const passedThroughHitbox = oldAboveHitbox && newInHitboxRange && xInHitboxRange;
       
       if (collisionAtNewPos || passedThroughHitbox) {
         // Caught! Mark as caught instead of removing immediately
         score += updatedDumpling.value;
-        dumplingsEaten += 1;
-        newFatness = Math.min(
-          MAX_FATNESS,
-          1.0 + dumplingsEaten * FATNESS_INCREMENT
-        );
+        // Only good food (positive value) counts for streak and fatness
+        if (updatedDumpling.value > 0) {
+          dumplingsEaten += 1;
+          newFatness = Math.min(
+            MAX_FATNESS,
+            1.0 + dumplingsEaten * FATNESS_INCREMENT
+          );
+        }
 
         effects.push({
           id: nextEffectId++,
@@ -192,13 +203,15 @@ export function update(
       }
     }
 
-    // Check if dumpling hit the ground
-    const dumplingBottom = updatedDumpling.y + updatedDumpling.radius;
-    if (dumplingBottom >= groundY) {
+    // Check if dumpling hit the ground (already calculated above, but check again for clarity)
+    if (hasHitGround) {
       if (gameState === 'playing') {
-        misses += 1;
-        if (misses >= MAX_MISSES) {
-          gameState = 'gameover';
+        // Fish and chips don't count as misses (they're bad food, not dumplings)
+        if (updatedDumpling.type !== 'fishChips') {
+          misses += 1;
+          if (misses >= MAX_MISSES) {
+            gameState = 'gameover';
+          }
         }
       }
       continue; // Remove dumpling

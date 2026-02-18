@@ -4,7 +4,7 @@
 
 export type GameStateType = 'idle' | 'playing' | 'gameover';
 
-export type DumplingType = 'charSiuBao' | 'siuMai' | 'haGao';
+export type DumplingType = 'charSiuBao' | 'siuMai' | 'haGao' | 'fishChips';
 
 export interface GameState {
   gameState: GameStateType;

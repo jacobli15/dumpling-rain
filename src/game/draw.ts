@@ -13,6 +13,7 @@ export function draw(
   charSiuBaoImage: HTMLImageElement | null = null,
   siuMaiImage: HTMLImageElement | null = null,
   haGaoImage: HTMLImageElement | null = null,
+  fishChipsImage: HTMLImageElement | null = null,
   fatBoyImage: HTMLImageElement | null = null,
   fatBoyEatingImage: HTMLImageElement | null = null,
   cloudImage: HTMLImageElement | null = null
@@ -39,7 +40,7 @@ export function draw(
   drawPlayer(ctx, state.player, width, height, fatBoyImage, fatBoyEatingImage, isEating);
 
   // Draw dumplings (falling, in front of player)
-  drawDumplings(ctx, state.dumplings, charSiuBaoImage, siuMaiImage, haGaoImage);
+  drawDumplings(ctx, state.dumplings, charSiuBaoImage, siuMaiImage, haGaoImage, fishChipsImage);
 
   // Draw effects
   drawEffects(ctx, state.effects);
@@ -180,6 +181,61 @@ function processImageBackground(
 }
 
 /**
+ * Process image so transparent / checkerboard / light background becomes sky blue (for fish and chips on sky)
+ */
+function processImageForSky(
+  image: HTMLImageElement,
+  width: number,
+  height: number,
+  skyBlue: { r: number; g: number; b: number }
+): HTMLCanvasElement | null {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = width;
+    canvas.height = height;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return null;
+
+    ctx.drawImage(image, 0, 0, width, height);
+    const imageData = ctx.getImageData(0, 0, width, height);
+    const data = imageData.data;
+
+    for (let i = 0; i < data.length; i += 4) {
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const a = data[i + 3];
+      const brightness = (r + g + b) / 3;
+
+      // Transparent or near-transparent → sky blue
+      if (a < 128) {
+        data[i] = skyBlue.r;
+        data[i + 1] = skyBlue.g;
+        data[i + 2] = skyBlue.b;
+        data[i + 3] = 255;
+      }
+      // Dark background
+      else if (brightness < 50) {
+        data[i] = skyBlue.r;
+        data[i + 1] = skyBlue.g;
+        data[i + 2] = skyBlue.b;
+      }
+      // Checkerboard / light grey / white background → sky blue
+      else if (brightness > 220 && Math.max(r, g, b) - Math.min(r, g, b) < 30) {
+        data[i] = skyBlue.r;
+        data[i + 1] = skyBlue.g;
+        data[i + 2] = skyBlue.b;
+      }
+    }
+
+    ctx.putImageData(imageData, 0, 0);
+    return canvas;
+  } catch {
+    return null;
+  }
+}
+
+/**
  * Draw dumplings
  */
 function drawDumplings(
@@ -187,7 +243,8 @@ function drawDumplings(
   dumplings: Dumpling[],
   charSiuBaoImage: HTMLImageElement | null,
   siuMaiImage: HTMLImageElement | null,
-  haGaoImage: HTMLImageElement | null
+  haGaoImage: HTMLImageElement | null,
+  fishChipsImage: HTMLImageElement | null
 ): void {
   const skyBlue = { r: 135, g: 206, b: 235 };
 
@@ -271,6 +328,60 @@ function drawDumplings(
           ctx.restore();
           ctx.fill();
           ctx.stroke();
+        }
+        break;
+
+      case 'fishChips':
+        if (fishChipsImage && fishChipsImage.complete) {
+          // Slightly larger so the dish is visible; preserve aspect for fish-and-chips plate
+          const size = currentRadius * 3.2;
+          const processedCanvas = processImageForSky(fishChipsImage, size, size, skyBlue);
+          if (processedCanvas) {
+            ctx.drawImage(processedCanvas, dumpling.x - size / 2, dumpling.y - size / 2);
+          } else {
+            ctx.drawImage(fishChipsImage, dumpling.x - size / 2, dumpling.y - size / 2, size, size);
+          }
+        } else {
+          // Draw fish and chips (not a circle)
+          const r = currentRadius;
+          ctx.save();
+          ctx.translate(dumpling.x, dumpling.y);
+          // Fish body (ellipse)
+          ctx.fillStyle = '#DEB887';
+          ctx.strokeStyle = '#8B4513';
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.ellipse(0, -r * 0.2, r * 0.9, r * 0.7, 0, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          // Fish tail
+          ctx.beginPath();
+          ctx.moveTo(r * 0.9, 0);
+          ctx.lineTo(r * 1.5, -r * 0.6);
+          ctx.lineTo(r * 1.5, r * 0.6);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+          // Fish eye
+          ctx.fillStyle = '#333';
+          ctx.beginPath();
+          ctx.arc(-r * 0.3, -r * 0.4, r * 0.15, 0, Math.PI * 2);
+          ctx.fill();
+          // Chips (fries) below
+          ctx.fillStyle = '#D2691E';
+          ctx.strokeStyle = '#8B4513';
+          ctx.lineWidth = 0.8;
+          const chipH = r * 0.35;
+          const chipW = r * 0.5;
+          [-0.6, 0, 0.6].forEach((dx, i) => {
+            ctx.save();
+            ctx.translate(dx * r, r * 0.6 + (i % 2) * 2);
+            ctx.rotate(0.15);
+            ctx.fillRect(-chipW / 2, -chipH / 2, chipW, chipH);
+            ctx.strokeRect(-chipW / 2, -chipH / 2, chipW, chipH);
+            ctx.restore();
+          });
+          ctx.restore();
         }
         break;
     }
@@ -367,14 +478,15 @@ function drawEffects(ctx: CanvasRenderingContext2D, effects: Effect[]): void {
     if (effect.type === 'score') {
       const progress = effect.timeElapsed / effect.duration;
       const opacity = 1 - progress;
-      
+      const isNegative = effect.value < 0;
+      const text = isNegative ? `${effect.value}` : `+${effect.value}`;
       ctx.save();
       ctx.globalAlpha = opacity;
-      ctx.fillStyle = '#4CAF50';
+      ctx.fillStyle = isNegative ? '#EF5350' : '#4CAF50';
       ctx.font = `bold 20px Arial`;
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`+${effect.value}`, effect.x, effect.y);
+      ctx.fillText(text, effect.x, effect.y);
       ctx.restore();
     }
   });
@@ -432,9 +544,11 @@ function drawScore(ctx: CanvasRenderingContext2D, score: number, dumplingsEaten:
   y += 38;
   drawLabel(ctx, `Streak: ${dumplingsEaten}`, x, y, { fontSize: 20 });
   y += 38;
-  drawLabel(ctx, `Misses: ${misses}/${MAX_MISSES}`, x, y, {
+  // Ensure misses is always a valid number
+  const missesValue = typeof misses === 'number' ? misses : 0;
+  drawLabel(ctx, `Misses: ${missesValue}/${MAX_MISSES}`, x, y, {
     fontSize: 20,
-    fillStyle: misses >= MAX_MISSES ? '#FF6B6B' : '#FFFFFF',
+    fillStyle: missesValue >= MAX_MISSES ? '#FF6B6B' : '#FFFFFF',
   });
 }
 

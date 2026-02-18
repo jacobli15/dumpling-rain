@@ -37,6 +37,7 @@ export function Game() {
   const charSiuBaoImageRef = useRef<HTMLImageElement | null>(null);
   const siuMaiImageRef = useRef<HTMLImageElement | null>(null);
   const haGaoImageRef = useRef<HTMLImageElement | null>(null);
+  const fishChipsImageRef = useRef<HTMLImageElement | null>(null);
   const fatBoyImageRef = useRef<HTMLImageElement | null>(null);
   const fatBoyEatingImageRef = useRef<HTMLImageElement | null>(null);
   const cloudImageRef = useRef<HTMLImageElement | null>(null);
@@ -60,6 +61,14 @@ export function Game() {
     haGaoImg.onload = () => {
       haGaoImageRef.current = haGaoImg;
     };
+
+    // Fish chips image is optional: add fish-chips.png to src/assets/bland food/ and uncomment below to use it
+    // try {
+    //   const fishChipsModule = await import('../assets/bland food/fish-chips.png');
+    //   const fishChipsImg = new Image();
+    //   fishChipsImg.src = fishChipsModule.default;
+    //   fishChipsImg.onload = () => { fishChipsImageRef.current = fishChipsImg; };
+    // } catch { /* file missing, use drawn fallback */ }
 
     const fatBoyImg = new Image();
     fatBoyImg.src = fatBoyImage;
@@ -285,7 +294,7 @@ export function Game() {
       }
 
       // Redraw after resize
-      draw(ctx, gameStateRef.current, width, height, charSiuBaoImageRef.current, siuMaiImageRef.current, haGaoImageRef.current, fatBoyImageRef.current, fatBoyEatingImageRef.current, cloudImageRef.current);
+      draw(ctx, gameStateRef.current, width, height, charSiuBaoImageRef.current, siuMaiImageRef.current, haGaoImageRef.current, fishChipsImageRef.current, fatBoyImageRef.current, fatBoyEatingImageRef.current, cloudImageRef.current);
     };
 
     /**
@@ -321,7 +330,7 @@ export function Game() {
       }
 
       // Always draw current state
-      draw(ctx, gameStateRef.current, width, height, charSiuBaoImageRef.current, siuMaiImageRef.current, haGaoImageRef.current, fatBoyImageRef.current, fatBoyEatingImageRef.current, cloudImageRef.current);
+      draw(ctx, gameStateRef.current, width, height, charSiuBaoImageRef.current, siuMaiImageRef.current, haGaoImageRef.current, fishChipsImageRef.current, fatBoyImageRef.current, fatBoyEatingImageRef.current, cloudImageRef.current);
 
       animationFrameRef.current = requestAnimationFrame(gameLoop);
     };
@@ -476,8 +485,14 @@ export function Game() {
               xmlns="http://www.w3.org/2000/svg"
               style={{ flexShrink: 0 }}
             >
-              <circle cx="10" cy="10" r="9" stroke="#333" strokeWidth="2" fill="none" />
-              <rect x="6" y="6" width="8" height="8" fill="#333" />
+              {/* Fish */}
+              <ellipse cx="8" cy="10" rx="5" ry="4" fill="#DEB887" stroke="#8B4513" strokeWidth="1" />
+              <path d="M13 10 L18 8 L18 12 Z" fill="#DEB887" stroke="#8B4513" strokeWidth="1" />
+              <circle cx="6" cy="9" r="1" fill="#333" />
+              {/* Chips */}
+              <rect x="2" y="14" width="3" height="1.5" rx="0.3" fill="#D2691E" />
+              <rect x="6" y="14.5" width="2.5" height="1.5" rx="0.3" fill="#CD853F" />
+              <rect x="9" y="14" width="2" height="1.5" rx="0.3" fill="#D2691E" />
             </svg>
             <span style={{ fontStyle: 'italic' }}>leaderboard</span>
           </button>
@@ -522,15 +537,20 @@ export function Game() {
             left: '50%',
             transform: 'translate(-50%, -50%)',
             textAlign: 'center',
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: '40px',
-            borderRadius: '12px',
+            backgroundColor: 'rgba(0, 0, 0, 0.85)',
+            padding: '32px 36px',
+            borderRadius: '16px',
             color: 'white',
             maxWidth: '90vw',
+            minWidth: '280px',
+            boxShadow: '0 8px 32px rgba(0,0,0,0.4)',
           }}
         >
-          <h2 style={{ marginTop: 0, fontSize: '36px' }}>Game Over</h2>
-          <p style={{ fontSize: '24px', margin: '20px 0' }}>Score: {gameState.score}</p>
+          <h2 style={{ marginTop: 0, marginBottom: '8px', fontSize: '28px', fontWeight: '700' }}>Game Over</h2>
+          <p style={{ fontSize: '20px', margin: '0 0 24px', color: 'rgba(255,255,255,0.9)' }}>
+            Score: <strong style={{ color: '#fff' }}>{gameState.score}</strong>
+          </p>
+
           {leaderboardAvailable && !scoreSubmitted && (
             <div style={{ marginBottom: '20px' }}>
               <input
@@ -541,78 +561,87 @@ export function Game() {
                 onChange={(e) => setSaveName(e.target.value)}
                 style={{
                   padding: '10px 14px',
-                  fontSize: '18px',
+                  fontSize: '16px',
                   borderRadius: '8px',
-                  border: '2px solid #ccc',
+                  border: '1px solid rgba(255,255,255,0.3)',
                   marginRight: '8px',
-                  width: '180px',
+                  width: '160px',
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  color: '#fff',
                 }}
               />
               <button
                 onClick={handleSaveScore}
                 style={{
-                  padding: '10px 20px',
-                  fontSize: '18px',
+                  padding: '10px 18px',
+                  fontSize: '16px',
                   backgroundColor: '#2196F3',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontWeight: 'bold',
+                  fontWeight: '600',
                 }}
               >
                 Save to leaderboard
               </button>
-              {saveError && <p style={{ color: '#FF6B6B', marginTop: '8px', fontSize: '14px' }}>{saveError}</p>}
-              {saveSuccess && <p style={{ color: '#4CAF50', marginTop: '8px', fontSize: '14px' }}>Saved!</p>}
+              {saveError && <p style={{ color: '#ff8a80', marginTop: '8px', fontSize: '13px' }}>{saveError}</p>}
+              {saveSuccess && <p style={{ color: '#81c784', marginTop: '8px', fontSize: '13px' }}>Saved!</p>}
             </div>
           )}
           {leaderboardAvailable && scoreSubmitted && (
-            <p style={{ color: '#4CAF50', marginBottom: '16px', fontSize: '16px' }}>Score saved to leaderboard!</p>
+            <p style={{ color: '#81c784', marginBottom: '20px', fontSize: '15px' }}>Score saved to leaderboard!</p>
           )}
-          {leaderboardAvailable && (
+
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'center', alignItems: 'center' }}>
+            {leaderboardAvailable && (
+              <button
+                onClick={() => setShowLeaderboard(true)}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '8px',
+                  padding: '12px 20px',
+                  fontSize: '16px',
+                  backgroundColor: 'rgba(255, 255, 255, 0.95)',
+                  color: '#333',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: '600',
+                  fontFamily: 'inherit',
+                }}
+              >
+                <svg width="18" height="18" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+                  {/* Fish */}
+                  <ellipse cx="8" cy="10" rx="5" ry="4" fill="#DEB887" stroke="#8B4513" strokeWidth="1" />
+                  <path d="M13 10 L18 8 L18 12 Z" fill="#DEB887" stroke="#8B4513" strokeWidth="1" />
+                  <circle cx="6" cy="9" r="1" fill="#333" />
+                  {/* Chips */}
+                  <rect x="2" y="14" width="3" height="1.5" rx="0.3" fill="#D2691E" />
+                  <rect x="6" y="14.5" width="2.5" height="1.5" rx="0.3" fill="#CD853F" />
+                  <rect x="9" y="14" width="2" height="1.5" rx="0.3" fill="#D2691E" />
+                </svg>
+                Leaderboard
+              </button>
+            )}
             <button
-              onClick={() => setShowLeaderboard(true)}
+              onClick={handleRestart}
               style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                marginBottom: '16px',
-                padding: '12px 24px',
-                fontSize: '18px',
-                backgroundColor: 'rgba(255, 255, 255, 0.9)',
-                color: '#333',
-                border: '2px solid #000',
+                padding: '12px 20px',
+                fontSize: '16px',
+                backgroundColor: 'transparent',
+                color: 'rgba(255,255,255,0.9)',
+                border: '1px solid rgba(255,255,255,0.4)',
                 borderRadius: '8px',
                 cursor: 'pointer',
                 fontWeight: '600',
                 fontFamily: 'inherit',
               }}
             >
-              <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-                <circle cx="10" cy="10" r="9" stroke="#333" strokeWidth="2" fill="none" />
-                <rect x="6" y="6" width="8" height="8" fill="#333" />
-              </svg>
-              Leaderboard
+              Play again
             </button>
-          )}
-          <button
-            onClick={handleRestart}
-            style={{
-              padding: '15px 30px',
-              fontSize: '20px',
-              backgroundColor: '#4CAF50',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              display: 'block',
-              margin: '0 auto',
-            }}
-          >
-            Restart
-          </button>
+          </div>
         </div>
       )}
 
